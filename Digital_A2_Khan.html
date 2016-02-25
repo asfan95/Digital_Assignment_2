@@ -17,13 +17,15 @@ function preload() {
     game.load.image('sky', 'assets/sky.png');
     game.load.image('ground', 'assets/platform.png');
     game.load.spritesheet('ichigo', 'assets/ichigo.png', 72, 0);
+    game.load.spritesheet('player', 'assets/player.png', 70, 0);
 
     game.load.spritesheet('enemy', 'assets/baddie.png', 32, 0);
     game.load.spritesheet('enemy1', 'assets/treeMonster.png', 180, 180);
     game.load.spritesheet('enemy2', 'assets/bird.png', 52  , 0);
 
     game.load.spritesheet('wave', 'assets/wave.png', 45, 0);
-    game.load.audio("plasma",'assets/plasma.mp3')
+    
+    //game.load.audio("plasma",'assets/plasma.mp3')
 }
 var player;
 var enemy;
@@ -33,57 +35,24 @@ var platforms;
 var cursors;
 var score = 0;
 var scoreText;
-function fireBullet () {
 
-    if (game.time.now > bulletTime)
-    {
-        bullet = bullets.getFirstExists(false);
-
-        if (bullet)
-        {
-            bullet.reset(sprite.x + 6, sprite.y - 8);
-            bullet.body.velocity.y = -300;
-            bulletTime = game.time.now + 250;
-        }
-    }
-
-}
-
-//  Called if the bullet goes out of the screen
-function resetBullet (bullet) 
-{
-
-    bullet.kill();
-
-}
 
 function create() {
     //  We're going to be using physics, so enable the Arcade Physics system
     game.physics.startSystem(Phaser.Physics.ARCADE);
     //  A simple background for our game
     game.add.sprite(0, 0, 'sky');
-    //  The platforms group contains the ground and the 2 ledges we can jump on
-    platforms = game.add.group();
-    //  We will enable physics for any object that is created in this group
-    platforms.enableBody = true;
-    // Here we create the ground.
-    var ground = platforms.create(0, game.world.height - 64, 'ground');
-    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
-    ground.scale.setTo(2, 2);
-    //  This stops it from falling away when you jump on it
-    ground.body.immovable = true;
+
     // The player and its settings
-    player = game.add.sprite(300, game.world.height - 150, 'ichigo');
-    //  We need to enable physics on the player
-    game.physics.arcade.enable(player);
+    player = game.add.sprite(300, game.world.height - 150, 'player');
+    game.physics.arcade.enable(player);//  We need to enable physics on the player
+    player.body.setSize(30,40,-10,20);
+
     //  Player physics properties. Give the little guy a slight bounce.
-    player.body.bounce.y = 0.1;
-    player.body.gravity.y = 975;
     player.body.collideWorldBounds = true;
     // Player Animations
-    player.animations.add('stand', [0, 1, 2, 3], 10, true);
-    player.animations.add('run', [4, 5, 6, 7, 8, 9, 10], 10, true);
-    player.animations.add('attack', [12, 13, 14, 15, 16, 17, 18], 15, false);
+    player.animations.add('stand', [0], 10, true);
+    player.animations.add('run', [0, 1, 2, 3, 4, 5, 6], 10, true);
     //player direction
     player.anchor.setTo(.4,.4);
     //  Finally some stars to collect
@@ -98,8 +67,13 @@ function create() {
     
     //  The score
     scoreText = game.add.text(16, 16, 'score: 0', { fontSize: '32px', fill: '#000' });
+    this.leftKey = game.input.keyboard.addKey(Phaser.Keyboard.A);
+    this.upKey = game.input.keyboard.addKey(Phaser.Keyboard.W);
+    this.downKey = game.input.keyboard.addKey(Phaser.Keyboard.S);
+    this.rightKey = game.input.keyboard.addKey(Phaser.Keyboard.D);
+    this.spaceKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
+    game.input.keyboard.addKeyCapture([ Phaser.Keyboard.W, Phaser.Keyboard.A,Phaser.Keyboard.S,Phaser.Keyboard.D, Phaser.Keyboard.SPACEBAR ]);
 
-    player.body.setSize(30,40,-10,20)
 }
 var Finish;
 var direction=0;
@@ -124,7 +98,7 @@ function spawnEnemy(one, two)
     enem.animations.play('walking');
     enem.body.setSize(55,55,-10,20);
     
-    game.debug.body(enem);
+    //game.debug.body(enem);
     game.physics.arcade.enable(enem);
 
     if(player.body.x - enem.body.x>0)
@@ -139,6 +113,8 @@ function spawnEnemy(one, two)
 function update()
 {
     game.debug.body(player);
+    player.body.velocity.x = 0;
+    player.body.velocity.y = 0;
     var x = Math.floor((Math.random() * 500) + 1);
     var z = Math.floor((Math.random() * 100) + 1);
     if(x<5)
@@ -147,11 +123,12 @@ function update()
     }
     //  Collide the player and the stars with the platforms
     game.physics.arcade.collide(player, platforms);
-    game.physics.arcade.overlap(waves, enemy, collidewave, null, this);
-    game.physics.arcade.overlap(player, enemy, collidePlayer, null, this);
+    //game.physics.arcade.overlap(waves, enemy, collidewave, null, this);
+    //game.physics.arcade.overlap(player, enemy, collidePlayer, null, this);
 
     //  Reset the players velocity (movement)
-    player.body.velocity.x = 0;
+
+
     if((cursors.left.isDown && cursors.left.shiftKey) && waveAttack==false)
     {
         if(direction==0)
@@ -179,7 +156,7 @@ function update()
         }, this);
 
     }
-    else if (cursors.left.isDown)
+    else if (this.spaceKey.isDown)
     {
         //  Move to the left
         player.body.velocity.x = -150;
@@ -201,18 +178,38 @@ function update()
         player.body.velocity.x = 150;
         player.animations.play('run');
     }
-    else
+    
+    
+    if(this.downKey.isDown)
+    {
+
+        player.angle=0;
+        player.body.velocity.y = 150;
+        player.animations.play('run');
+
+    }else if(this.upKey.isDown)
+    {
+        player.angle=180;
+        player.body.velocity.y = -150;
+        player.animations.play('run');
+
+    }else if(this.leftKey.isDown)
+    {
+        player.angle=90;
+        player.body.velocity.x = -150;
+        player.animations.play('run');
+
+    }else if(this.rightKey.isDown)
+    {
+        player.angle=270;
+        player.body.velocity.x = 150; 
+        player.animations.play('run');
+
+    }else
     {
         //  Stand still
         player.animations.play('stand');
     }
-    
-    //  Allow the player to jump if they are touching the ground.
-    if (cursors.up.isDown && player.body.touching.down)
-    {
-        player.body.velocity.y = -350;
-    }
-
     if(waveAttack==true)
     {
         if(direction==0)
